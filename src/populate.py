@@ -11,6 +11,8 @@ def populate_postgres(session: Session, dataframe: pd.DataFrame):
 
     country_map = {c.country_name: c.id for c in session.query(Countries).all()}
     
+    dataframe['gender'] = dataframe['gender'].map({0: 'Male', 1: 'Female'})
+    
     for index, row in dataframe.iterrows():
         user = User(name=row['customer name'], email=row['customer e-mail'])
         session.add(user)
