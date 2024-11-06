@@ -44,7 +44,7 @@ This project demonstrates the design and implementation of a normalized database
 
 | Team Member                  | Role                        | Contribution                                 |
 |------------------------------|-----------------------------|----------------------------------------------|
-| Abdulhameed Teniola Ajani    | Database Design (SQL)       | SQL schema design, ER diagram                |
+| Abdulhameed Teniola Ajani    | Database Schema Design      | Database schema design                       |
 | Ken Ganza Kalisa             | MongoDB Implementation      | MongoDB collections setup, normalization     |
 | Eddie Ochang Lokidormoi      | SQL     Implementation      | MongoDB collections setup, normalization     |
 | Mariam Azeez                 | API Development (FastAPI)   | CRUD API endpoints                           |
