@@ -4,6 +4,7 @@ from supabase import create_client, Client
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.models.models import Base
+from mongoengine import connect
 
 load_dotenv()
 
@@ -28,4 +29,16 @@ def get_db():
     try:
         yield session  
     finally:
-        session.close() 
+        session.close()
+        
+        
+def get_database_connection():
+    mongo_uri = os.getenv("MONGODB_URL")
+    if mongo_uri:
+        connect(host=mongo_uri.strip())
+        print("Connected to MongoDB")
+    else:
+        raise ValueError("Set MongoDB URL.")
+
+# Usage
+get_database_connection()
