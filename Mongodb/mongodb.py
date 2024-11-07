@@ -14,3 +14,8 @@ client = MongoClient("MONGO_URL", tlsCAFile=certifi.where())
 db = client['customer_data']  # Replace with your preferred database name
 customers_collection = db['Customers']
 
+# Loop through the dataset and insert each row as a document
+for _, row in dataset.iterrows():
+    customer_id = int(row['customer_id'])
+    
+    
