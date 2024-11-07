@@ -1,1 +1,11 @@
-pip install -r requirements.txt
+fastapi
+uvicorn
+supabase
+python-dotenv
+sqlalchemy
+psycopg2-binary
+psycopg2
+pandas
+mongoengine
+pymongo
+
