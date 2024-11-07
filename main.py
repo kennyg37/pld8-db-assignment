@@ -1,79 +1,94 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from pymongo import MongoClient
-from bson import ObjectId
-from typing import List
+from motor.motor_asyncio import AsyncIOMotorClient
+from typing import Optional
 import os
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-MONGODB_URL = os.getenv("mongodb+srv://eddy:eddy1234@cluster0.bry6h.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+load_dotenv() # Load environment variables from .env file
 
-# Connect to MongoDB
-client = MongoClient(MONGODB_URL)
-db = client["your_database_name"]  # Replace with your MongoDB database name
-user_collection = db["users"]      # Replace with the name of your collection
+# MongoDB URI encoding
+password = os.getenv("MONGO_PASSWORD")
+encoded_password = quote_plus(password)
 
+# MongoDB connection using motor for async operations
+client = AsyncIOMotorClient(
+    f"mongodb+srv://mazeez:{encoded_password}@cluster0.bsxpc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+    tls=True,
+    tlsAllowInvalidCertificates=True
+)
+
+# Select the database and collection
+db = client['customer_data']
+customers_collection = db['Customers']
+
+# Pydantic models for validation
+class ContactInfo(BaseModel):
+    email: str
+    country: str
+
+class Demographics(BaseModel):
+    gender: int
+    age: float
+
+class FinancialInfo(BaseModel):
+    annual_salary: float
+    credit_card_debt: float
+    net_worth: float
+    car_purchase_amount: float
+
+class Customer(BaseModel):
+    customer_id: int
+    name: str
+    contact_info: ContactInfo
+    demographics: Demographics
+    financial_info: FinancialInfo
+
+# FastAPI instance
 app = FastAPI()
 
-# Pydantic Models
-class UserCreate(BaseModel):
-    name: str
-    email: str
-    age: int
+@app.post("/customers/", response_model=dict)
+async def create_customer(customer: Customer):
+    # Check if the customer_id already exists in the database
+    existing_customer = await customers_collection.find_one({"customer_id": customer.customer_id})
+    if existing_customer:
+        raise HTTPException(status_code=400, detail="Customer ID already exists")
 
-class UserResponse(UserCreate):
-    id: str  # MongoDB ObjectId as a string
+    # If customer_id is unique, insert the customer
+    customer_data = customer.dict()
+    result = await customers_collection.insert_one(customer_data)
+    return {"id": str(result.inserted_id)}
 
-    class Config:
-        orm_mode = True
+@app.get("/customers/{customer_id}", response_model=Customer)
+async def get_customer(customer_id: int):
+    # Fetch customer by customer_id
+    customer = await customers_collection.find_one({"customer_id": customer_id})
+    if not customer:
+        print(f"Customer not found in database for customer_id: {customer_id}")
+        raise HTTPException(status_code=404, detail="Customer not found")
 
+    # Convert _id to string for easier readability
+    customer["_id"] = str(customer["_id"])
+    return customer
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+@app.put("/customers/{customer_id}", response_model=dict)
+async def update_customer(customer_id: int, customer: Customer):
+    # Update the customer data
+    customer_data = customer.dict()
+    result = await customers_collection.update_one({"customer_id": customer_id}, {"$set": customer_data})
 
-@app.post("/populate/mongodb")
-def populate_mongo():
-    # Call your MongoDB population function here
-    populate_mongodb()
-    return {"message": "MongoDB populated"}
-
-# CRUD Endpoints for MongoDB
-
-# CREATE (POST)
-@app.post("/users/", response_model=UserResponse)
-def create_user(user: UserCreate):
-    user_data = user.dict()
-    result = user_collection.insert_one(user_data)
-    user_data["id"] = str(result.inserted_id)
-    return user_data
-
-# READ (GET)
-@app.get("/users/{user_id}", response_model=UserResponse)
-def read_user(user_id: str):
-    user = user_collection.find_one({"_id": ObjectId(user_id)})
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    user["id"] = str(user["_id"])
-    return user
-
-# UPDATE (PUT)
-@app.put("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: str, updated_user: UserCreate):
-    update_data = {"$set": updated_user.dict()}
-    result = user_collection.update_one({"_id": ObjectId(user_id)}, update_data)
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    user = user_collection.find_one({"_id": ObjectId(user_id)})
-    user["id"] = str(user["_id"])
-    return user
+        raise HTTPException(status_code=404, detail="Customer not found")
 
-# DELETE (DELETE)
-@app.delete("/users/{user_id}", response_model=dict)
-def delete_user(user_id: str):
-    result = user_collection.delete_one({"_id": ObjectId(user_id)})
+    return {"status": "Customer updated"}
+
+@app.delete("/customers/{customer_id}", response_model=dict)
+async def delete_customer(customer_id: int):
+    # Delete the customer
+    result = await customers_collection.delete_one({"customer_id": customer_id})
+
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "User deleted successfully"}
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    return {"status": "Customer deleted"}
