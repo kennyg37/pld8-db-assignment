@@ -43,4 +43,7 @@ for _, row in dataset.iterrows():
             }
         }
         
-        
+        # Insert the document into the collection
+        customers_collection.insert_one(customer_document)
+
+print("Data insertion completed successfully.")
