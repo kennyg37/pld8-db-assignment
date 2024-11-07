@@ -18,4 +18,29 @@ customers_collection = db['Customers']
 for _, row in dataset.iterrows():
     customer_id = int(row['customer_id'])
     
+    # Check if the customer already exists based on customer_id
+    existing_customer = customers_collection.find_one({"customer_id": customer_id})
     
+    if existing_customer:
+        print(f"Customer with customer_id {customer_id} already exists, skipping insertion.")
+    else:
+        customer_document = {
+            "customer_id": customer_id,
+            "name": row['customer name'],
+            "contact_info": {
+                "email": row['customer e-mail'],
+                "country": row['country']
+            },
+            "demographics": {
+                "gender": row['gender'],
+                "age": row['age']
+            },
+            "financial_info": {
+                "annual_salary": row['annual Salary'],
+                "credit_card_debt": row['credit card debt'],
+                "net_worth": row['net worth'],
+                "car_purchase_amount": row['car purchase amount']
+            }
+        }
+        
+        
