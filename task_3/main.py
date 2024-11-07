@@ -20,7 +20,7 @@ def populate_mongo():
     populate_mongodb()
     return {"message": "MongoDB populated"}
 
-# --- CRUD Endpoints for PostgreSQL ---
+#CRUD Endpoints for PostgreSQL
 
 # CREATE (POST)
 @app.post("/users/", response_model=User)
