@@ -10,7 +10,7 @@ load_dotenv() # Load environment variables from .env file
 
 # MongoDB URI encoding
 password = os.getenv("MONGO_PASSWORD")
-encoded_password = quote_plus(password)
+encoded_password = quote_plus(password.encode('utf-8'))
 
 # MongoDB connection using motor for async operations
 client = AsyncIOMotorClient(
