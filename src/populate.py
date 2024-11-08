@@ -36,12 +36,7 @@ def populate_databases(session: Session):
     dataframe = pd.read_csv("data/car_purchasing.csv", encoding="ISO-8859-1")
     populate_postgres(session, dataframe)
     
-    
-    
-    
-
-
-def populate_mongodb(dataframe: pd.DataFrame):
+def loadData_mongodb(dataframe: pd.DataFrame):
     country_map = {}
     for country in dataframe['country'].unique():
         country_entry = Countries(country_name=country)
@@ -75,4 +70,4 @@ def populate_mongodb():
     # Load data from CSV file
     dataframe = pd.read_csv("data/car_purchasing.csv", encoding="ISO-8859-1")
     # Populate MongoDB with the loaded data
-    populate_mongodb(dataframe)
+    loadData_mongodb(dataframe)

@@ -1,104 +1,133 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from motor.motor_asyncio import AsyncIOMotorClient
-from typing import Optional
 import os
+import uuid
 from dotenv import load_dotenv
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session  
+from sqlalchemy.exc import IntegrityError
+from src.models.models import Countries, User, User_data
+from src.config import get_db
+from src.populate import populate_databases, populate_mongodb
+import uvicorn
 
-load_dotenv() # Load environment variables from .env file
+load_dotenv()
 
-# MongoDB URI encoding
-mongo_url = os.getenv("MONGO_URL")
-
-# Check if the URI is loaded properly
-if mongo_url is None:
-    raise ValueError("MONGO_URL environment variable not set.")
-
-# MongoDB connection using motor for async operations
-client = AsyncIOMotorClient(mongo_url, tls=True, tlsAllowInvalidCertificates=True)
-
-
-# Select the database and collection
-db = client['customer_data']
-customers_collection = db['Customers']
-
-# Pydantic models for validation
-class ContactInfo(BaseModel):
-    email: str
-    country: str
-
-class Demographics(BaseModel):
-    gender: int
-    age: float
-
-class FinancialInfo(BaseModel):
-    annual_salary: float
-    credit_card_debt: float
-    net_worth: float
-    car_purchase_amount: float
-
-class Customer(BaseModel):
-    customer_id: int
-    name: str
-    contact_info: ContactInfo
-    demographics: Demographics
-    financial_info: FinancialInfo
-
-# FastAPI instance
 app = FastAPI()
 
-# Get the port number from the environment variable, or default to 8000
-port = int(os.getenv("PORT", 8000))
+port = int(os.getenv("PORT"))
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the API"}
+@app.get("/", include_in_schema=False)
+def read_root(session: Session = Depends(get_db)):
+    return RedirectResponse(url="/docs")
 
-@app.post("/customers/", response_model=dict)
-async def create_customer(customer: Customer):
-    # Check if the customer_id already exists in the database
-    existing_customer = await customers_collection.find_one({"customer_id": customer.customer_id})
-    if existing_customer:
-        raise HTTPException(status_code=400, detail="Customer ID already exists")
+@app.post("/populate/postgres")
+def populate_db(session: Session = Depends(get_db)):
+    populate_databases(session)
+    return {"message": "Database populated"}
 
-    # If customer_id is unique, insert the customer
-    customer_data = customer.dict()
-    result = await customers_collection.insert_one(customer_data)
-    return {"id": str(result.inserted_id)}
+@app.post("/populate/mongodb")
+def populate_mongo():
+    populate_mongodb()
+    return {"message": "MongoDB populated"}
 
-@app.get("/customers/{customer_id}", response_model=Customer)
-async def get_customer(customer_id: int):
-    # Fetch customer by customer_id
-    customer = await customers_collection.find_one({"customer_id": customer_id})
-    if not customer:
-        print(f"Customer not found in database for customer_id: {customer_id}")
-        raise HTTPException(status_code=404, detail="Customer not found")
+@app.post("/users/")
+async def create_user(request: Request, session: Session = Depends(get_db)):
+    user_data = await request.json()
+    
+    existing_user = session.query(User).filter(User.email == user_data["email"]).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
 
-    # Convert _id to string for easier readability
-    customer["_id"] = str(customer["_id"])
-    return customer
+    new_user = User(
+        name=user_data["name"],
+        email=user_data["email"]
+    )
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
 
-@app.put("/customers/{customer_id}", response_model=dict)
-async def update_customer(customer_id: int, customer: Customer):
-    # Update the customer data
-    customer_data = customer.dict()
-    result = await customers_collection.update_one({"customer_id": customer_id}, {"$set": customer_data})
+    country = session.query(Countries).filter(Countries.country_name == user_data["country_name"]).first()
+    if not country:
+        try:
+            new_country = Countries(country_name=user_data["country_name"])
+            session.add(new_country)
+            session.commit()
+            session.refresh(new_country)
+            country = new_country
+        except IntegrityError:
+            session.rollback()
+            raise HTTPException(status_code=500, detail="Error adding new country")
 
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Customer not found")
+    new_user_data = User_data(
+        user_id=new_user.id,
+        country_id=country.id,
+        gender=user_data["gender"],
+        age=user_data["age"],
+        annual_salary=user_data["annual_salary"],
+        credit_card=user_data["credit_card"],
+        net_worth=user_data["net_worth"],
+        car_purchase=user_data["car_purchase"]
+    )
 
-    return {"status": "Customer updated"}
+    session.add(new_user_data)
+    session.commit()
+    session.refresh(new_user_data)
 
-@app.delete("/customers/{customer_id}", response_model=dict)
-async def delete_customer(customer_id: int):
-    # Delete the customer
-    result = await customers_collection.delete_one({"customer_id": customer_id})
+    return {"id": str(new_user.id)}
+@app.get("/users/{user_id}")
+def get_user(user_id: uuid.UUID, session: Session = Depends(get_db)):
+    user = session.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Customer not found")
+    user_data = session.query(User_data).filter(User_data.user_id == user.id).first()
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User data not found")
 
-    return {"status": "Customer deleted"}
+    user_data_dict = user_data.__dict__
+    user_data_dict.update(user.__dict__)
+    
+    return {k: v for k, v in user_data_dict.items() if not k.startswith("_")}
+
+@app.put("/users/{user_id}")
+async def update_user(user_id: uuid.UUID, request: Request, session: Session = Depends(get_db)):
+    user_data = await request.json()
+    
+    existing_user = session.query(User).filter(User.id == user_id).first()
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    existing_user.name = user_data["name"]
+    existing_user.email = user_data["email"]
+    session.commit()
+
+    existing_user_data = session.query(User_data).filter(User_data.user_id == user_id).first()
+    if not existing_user_data:
+        raise HTTPException(status_code=404, detail="User data not found")
+
+    existing_user_data.gender = user_data["gender"]
+    existing_user_data.age = user_data["age"]
+    existing_user_data.annual_salary = user_data["annual_salary"]
+    existing_user_data.credit_card = user_data["credit_card"]
+    existing_user_data.net_worth = user_data["net_worth"]
+    existing_user_data.car_purchase = user_data["car_purchase"]
+    session.commit()
+
+    return {"status": "User and user data updated"}
+
+@app.delete("/users/{user_id}")
+def delete_user(user_id: uuid.UUID, session: Session = Depends(get_db)):
+    user = session.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_data = session.query(User_data).filter(User_data.user_id == user_id).first()
+    if user_data:
+        session.delete(user_data)
+    session.delete(user)
+    session.commit()
+
+    return {"status": "User and user data deleted"}
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=port)
