@@ -60,3 +60,15 @@ async def create_customer(customer: Customer):
     result = await customers_collection.insert_one(customer_data)
     return {"id": str(result.inserted_id)}
 
+@app.get("/customers/{customer_id}", response_model=Customer)
+async def get_customer(customer_id: int):
+    # Fetch customer by customer_id
+    customer = await customers_collection.find_one({"customer_id": customer_id})
+    if not customer:
+        print(f"Customer not found in database for customer_id: {customer_id}")
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Convert _id to string for easier readability
+    customer["_id"] = str(customer["_id"])
+    return customer
+
