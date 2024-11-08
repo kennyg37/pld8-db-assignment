@@ -3,26 +3,20 @@ from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional
 import os
-from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
 load_dotenv() # Load environment variables from .env file
 
 # MongoDB URI encoding
-password = os.getenv("MONGO_PASSWORD")
+mongo_url = os.getenv("MONGO_URL")
 
-# Check if password is loaded properly
-if password is None:
-    raise ValueError("MONGO_PASSWORD environment variable not set.")
-
-encoded_password = quote_plus(password.encode('utf-8'))
+# Check if the URI is loaded properly
+if mongo_url is None:
+    raise ValueError("MONGO_URL environment variable not set.")
 
 # MongoDB connection using motor for async operations
-client = AsyncIOMotorClient(
-    f"mongodb+srv://mazeez:{encoded_password}@cluster0.bsxpc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-    tls=True,
-    tlsAllowInvalidCertificates=True
-)
+client = AsyncIOMotorClient(mongo_url, tls=True, tlsAllowInvalidCertificates=True)
+
 
 # Select the database and collection
 db = client['customer_data']
