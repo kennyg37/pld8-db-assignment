@@ -72,3 +72,14 @@ async def get_customer(customer_id: int):
     customer["_id"] = str(customer["_id"])
     return customer
 
+@app.put("/customers/{customer_id}", response_model=dict)
+async def update_customer(customer_id: int, customer: Customer):
+    # Update the customer data
+    customer_data = customer.dict()
+    result = await customers_collection.update_one({"customer_id": customer_id}, {"$set": customer_data})
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    return {"status": "Customer updated"}
+
