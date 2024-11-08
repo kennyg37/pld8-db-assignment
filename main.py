@@ -83,3 +83,12 @@ async def update_customer(customer_id: int, customer: Customer):
 
     return {"status": "Customer updated"}
 
+@app.delete("/customers/{customer_id}", response_model=dict)
+async def delete_customer(customer_id: int):
+    # Delete the customer
+    result = await customers_collection.delete_one({"customer_id": customer_id})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    return {"status": "Customer deleted"}
