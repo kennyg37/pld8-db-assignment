@@ -1,13 +1,20 @@
+import os
+from dotenv import load_dotenv
 import pandas as pd
 import certifi
 from pymongo import MongoClient
 
-file_path = '/Users/azeezmariam/pld8-db-assignment/Mongodb/car_purchasing.csv'
+load_dotenv()
+
+MONGODB_URL = os.getenv("MONGODB_URL")
+
+file_path = 'C:/Users/USER/Desktop/ken/Alu/fastapi/pld8-db-assignment/data/car_purchasing.csv'
 dataset = pd.read_csv(file_path, encoding='ISO-8859-1')
+dataset = dataset.head(10)
 
 dataset['customer_id'] = range(1, len(dataset) + 1)
 
-client = MongoClient("MONGO_URL", tlsCAFile=certifi.where())
+client = MongoClient(MONGODB_URL, tlsCAFile=certifi.where())
 db = client['customer_data']  
 customers_collection = db['Customers']
 

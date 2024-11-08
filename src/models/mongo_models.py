@@ -1,36 +1,33 @@
-from mongoengine import Document, StringField, UUIDField, FloatField, IntField, ReferenceField
-import uuid
 from mongoengine import connect
 import os
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from motor.motor_asyncio import AsyncIOMotorClient
 
-# Load environment variables from .env file
+
 load_dotenv()
 
-# Get MongoDB URI from environment variable
 MONGODB_URL = os.getenv("MONGODB_URL")
 
-# Connect using the environment variable
-connect(host=MONGODB_URL)
+client = AsyncIOMotorClient(MONGODB_URL, tls=True, tlsAllowInvalidCertificates=True)
 
-class User(Document):
-    id = UUIDField(primary_key=True, default=uuid.uuid4, binary=False)
-    name = StringField(required=True)
-    email = StringField(required=True)
-    
+class ContactInfo(BaseModel):
+    email: str
+    country: str
 
-class Countries(Document):
-    id = UUIDField(primary_key=True, default=uuid.uuid4, binary=False)
-    country_name = StringField(required=True)
+class Demographics(BaseModel):
+    gender: int
+    age: float
 
+class FinancialInfo(BaseModel):
+    annual_salary: float
+    credit_card_debt: float
+    net_worth: float
+    car_purchase_amount: float
 
-class UserData(Document):
-    id = IntField(primary_key=True)
-    user_id = ReferenceField(User, required=True)
-    country_id = ReferenceField(Countries, required=True)
-    gender = StringField()
-    age = IntField()
-    annual_salary = FloatField()
-    credit_card = FloatField()
-    net_worth = FloatField()
-    car_purchase = FloatField()
+class Customer(BaseModel):
+    customer_id: int
+    name: str
+    contact_info: ContactInfo
+    demographics: Demographics
+    financial_info: FinancialInfo
