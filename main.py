@@ -50,6 +50,10 @@ app = FastAPI()
 # Get the port number from the environment variable, or default to 8000
 port = int(os.getenv("PORT", 8000))
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the API"}
+
 @app.post("/customers/", response_model=dict)
 async def create_customer(customer: Customer):
     # Check if the customer_id already exists in the database
