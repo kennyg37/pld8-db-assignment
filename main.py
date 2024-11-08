@@ -25,11 +25,6 @@ def populate_db(session: Session = Depends(get_db)):
     populate_databases(session)
     return {"message": "Database populated"}
 
-@app.post("/populate/mongodb")
-def populate_mongo():
-    populate_mongodb()
-    return {"message": "MongoDB populated"}
-
 @app.post("/users/")
 async def create_user(request: Request, session: Session = Depends(get_db)):
     user_data = await request.json()

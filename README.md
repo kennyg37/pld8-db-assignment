@@ -45,8 +45,8 @@ This project demonstrates the design and implementation of a normalized database
 | Team Member                  | Role                        | Contribution                                 |
 |------------------------------|-----------------------------|----------------------------------------------|
 | Abdulhameed Teniola Ajani    | Database Schema Design      | Database schema design                       |
-| Ken Ganza Kalisa             | MongoDB Implementation      | MongoDB collections setup, normalization     |
-| Ochan Denmark LOKIDORMOI     | SQL     Implementation      | MongoDB collections setup, normalization     |
+| Ken Ganza Kalisa             | SQL Implementation      | SQL collections setup, normalization     |
+| Ochan Denmark LOKIDORMOI     | MONGODB     Implementation      | MongoDB collections setup, normalization     |
 | Mariam Azeez                 | API Development (FastAPI)   | CRUD API endpoints                           |
 | Smart Israel                 | Data Fetch & Prediction     | Prediction script integration                |
 
