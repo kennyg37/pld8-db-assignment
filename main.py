@@ -48,6 +48,9 @@ class Customer(BaseModel):
 # FastAPI instance
 app = FastAPI()
 
+# Get the port number from the environment variable, or default to 8000
+port = int(os.getenv("PORT", 8000))
+
 @app.post("/customers/", response_model=dict)
 async def create_customer(customer: Customer):
     # Check if the customer_id already exists in the database
@@ -92,3 +95,7 @@ async def delete_customer(customer_id: int):
         raise HTTPException(status_code=404, detail="Customer not found")
 
     return {"status": "Customer deleted"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=port)
