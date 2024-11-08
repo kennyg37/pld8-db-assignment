@@ -40,5 +40,4 @@ def get_database_connection():
     else:
         raise ValueError("Set MongoDB URL.")
 
-# Usage
 get_database_connection()
