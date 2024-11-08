@@ -45,3 +45,18 @@ class Customer(BaseModel):
     demographics: Demographics
     financial_info: FinancialInfo
 
+# FastAPI instance
+app = FastAPI()
+
+@app.post("/customers/", response_model=dict)
+async def create_customer(customer: Customer):
+    # Check if the customer_id already exists in the database
+    existing_customer = await customers_collection.find_one({"customer_id": customer.customer_id})
+    if existing_customer:
+        raise HTTPException(status_code=400, detail="Customer ID already exists")
+
+    # If customer_id is unique, insert the customer
+    customer_data = customer.dict()
+    result = await customers_collection.insert_one(customer_data)
+    return {"id": str(result.inserted_id)}
+
