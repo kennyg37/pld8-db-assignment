@@ -8,8 +8,16 @@ from dotenv import load_dotenv
 
 load_dotenv() # Load environment variables from .env file
 
+# Check if password is loaded properly
+if password is None:
+    raise ValueError("MONGO_PASSWORD environment variable not set.")
 # MongoDB URI encoding
 password = os.getenv("MONGO_PASSWORD")
+
+# Check if password is loaded properly
+if password is None:
+    raise ValueError("MONGO_PASSWORD environment variable not set.")
+
 encoded_password = quote_plus(password.encode('utf-8'))
 
 # MongoDB connection using motor for async operations
