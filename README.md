@@ -21,6 +21,7 @@ This project demonstrates the design and implementation of a normalized database
    - **Normalization**: Designed to achieve Third Normal Form (3NF) for optimal structure and minimal redundancy.
    - **Key Tables**: `Companies`, `Employees`, `Projects` with relationships managed by primary and foreign keys.
    - **Diagram**: Created with Draw.io and saved as `Database_Design_Diagram.drawio.png`.
+   - ![Database Design Diagram](Database_Design_Diagram.drawio.png)
 
 2. **Task 2: SQL and MongoDB Implementation**:
    - **SQL Implementation**:
