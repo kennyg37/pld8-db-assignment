@@ -72,19 +72,22 @@ async def create_user(user_data: UserRequest, request: Request, session: Session
     return {"id": str(new_user.id)}
 @app.get("/users/")
 def get_last_user(session: Session = Depends(get_db)):
-    user = session.query(User).order_by(User.id.desc()).first()
-    user_data = session.query(User_data).filter(User_data.user_id == user.id).first() if user else None
+    last_user_data = session.query(User_data).order_by(User_data.id.desc()).first()
 
-    if not user or not user_data:
-        return {}
+    if not last_user_data:
+        return {"detail": "No user data found"}
 
-    country = session.query(Countries).filter(Countries.id == user_data.country_id).first() if user_data else None
+    user = session.query(User).filter(User.id == last_user_data.user_id).first()
+    country = session.query(Countries).filter(Countries.id == last_user_data.country_id).first()
 
-    user_data_dict = user_data.__dict__ if user_data else {}
-    user_data_dict.update(user.__dict__ if user else {})
-
+    user_data_dict = last_user_data.__dict__
+    
+    if user:
+        user_data_dict.update(user.__dict__)
+    
     if country:
         user_data_dict["country_name"] = country.country_name
+
     last_user_dict = {k: v for k, v in user_data_dict.items() if not k.startswith("_")}
     
     return last_user_dict
