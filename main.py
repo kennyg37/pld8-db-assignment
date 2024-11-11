@@ -77,10 +77,16 @@ def get_last_user(session: Session = Depends(get_db)):
 
     if not user or not user_data:
         return {}
-    user_data_dict = user_data.__dict__
-    user_data_dict.update(user.__dict__)
-    last_user_dict = {k: v for k, v in user_data_dict.items() if not k.startswith("_")}
 
+    country = session.query(Countries).filter(Countries.id == user_data.country_id).first() if user_data else None
+
+    user_data_dict = user_data.__dict__ if user_data else {}
+    user_data_dict.update(user.__dict__ if user else {})
+
+    if country:
+        user_data_dict["country_name"] = country.country_name
+    last_user_dict = {k: v for k, v in user_data_dict.items() if not k.startswith("_")}
+    
     return last_user_dict
 
 @app.get("/users/{user_id}")
