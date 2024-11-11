@@ -5,6 +5,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session  
 from sqlalchemy.exc import IntegrityError
+from src.models.schema import UserRequest
 from src.models.models import Countries, User, User_data
 from src.config import get_db
 from src.populate import populate_databases, populate_mongodb
@@ -26,7 +27,7 @@ def populate_db(session: Session = Depends(get_db)):
     return {"message": "Database populated"}
 
 @app.post("/users/")
-async def create_user(request: Request, session: Session = Depends(get_db)):
+async def create_user(user_data: UserRequest, request: Request, session: Session = Depends(get_db)):
     user_data = await request.json()
     
     existing_user = session.query(User).filter(User.email == user_data["email"]).first()
@@ -69,6 +70,19 @@ async def create_user(request: Request, session: Session = Depends(get_db)):
     session.refresh(new_user_data)
 
     return {"id": str(new_user.id)}
+@app.get("/users/")
+def get_last_user(session: Session = Depends(get_db)):
+    user = session.query(User).order_by(User.id.desc()).first()
+    user_data = session.query(User_data).filter(User_data.user_id == user.id).first() if user else None
+
+    if not user or not user_data:
+        return {}
+    user_data_dict = user_data.__dict__
+    user_data_dict.update(user.__dict__)
+    last_user_dict = {k: v for k, v in user_data_dict.items() if not k.startswith("_")}
+
+    return last_user_dict
+
 @app.get("/users/{user_id}")
 def get_user(user_id: uuid.UUID, session: Session = Depends(get_db)):
     user = session.query(User).filter(User.id == user_id).first()
@@ -85,7 +99,7 @@ def get_user(user_id: uuid.UUID, session: Session = Depends(get_db)):
     return {k: v for k, v in user_data_dict.items() if not k.startswith("_")}
 
 @app.put("/users/{user_id}")
-async def update_user(user_id: uuid.UUID, request: Request, session: Session = Depends(get_db)):
+async def update_user(user_data:UserRequest, user_id: uuid.UUID, request: Request, session: Session = Depends(get_db)):
     user_data = await request.json()
     
     existing_user = session.query(User).filter(User.id == user_id).first()
