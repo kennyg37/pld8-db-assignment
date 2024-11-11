@@ -84,7 +84,7 @@ This project demonstrates the design and implementation of a normalized database
 
    - **Running the Script**:
      ```bash
-     python your_script_name.py
+     python predictions.py
      ```
    - The prediction result will display in the console if successful. Error messages or warnings are logged for troubleshooting.
 
